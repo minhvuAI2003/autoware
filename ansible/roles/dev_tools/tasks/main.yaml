@@ -3,26 +3,22 @@
   become: true
   ansible.builtin.apt:
     name: git-lfs
+    # 'latest' (not 'present') so an already-installed git-lfs converges to the
+    # locked pin; 'present' never changes an installed version, ignoring the pin.
     state: latest
+    allow_downgrade: "{{ use_locked_versions | default(false) | bool }}"
     update_cache: true
 
-# ref: https://github.com/ansible/ansible-lint/issues/1780
-- name: Check if git lfs is installed # https://github.com/git-lfs/git-lfs/issues/901
-  community.general.git_config:
-    list_all: true
-    scope: global
-  register: dev_tools__git_lfs__git_global_config
-
-- name: Setup Git LFS
+- name: Setup Git LFS for current user
   ansible.builtin.command: git lfs install
-  when: "'filter.lfs.required' not in dev_tools__git_lfs__git_global_config.config_values"
-  changed_when: true
+  changed_when: false
 
 - name: Install pipx
   become: true
   ansible.builtin.apt:
     name: pipx
     state: latest
+    allow_downgrade: "{{ use_locked_versions | default(false) | bool }}"
     update_cache: true
 
 - name: Install pre-commit
@@ -40,6 +36,7 @@
   ansible.builtin.apt:
     name: golang
     state: latest
+    allow_downgrade: "{{ use_locked_versions | default(false) | bool }}"
     update_cache: true
 
 - name: Hold check of ros-{{ rosdistro + '-plotjuggler' }}
@@ -53,6 +50,7 @@
     name:
       - ros-{{ rosdistro }}-plotjuggler
     state: latest
+    allow_downgrade: "{{ use_locked_versions | default(false) | bool }}"
     update_cache: true
   when: "'ros-' + rosdistro + '-plotjuggler' not in dev_tools__held_ros_packages.stdout"
   register: dev_tools__install_result
